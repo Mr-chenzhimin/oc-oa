@@ -1,0 +1,59 @@
+{
+    "rspHeader": {
+        "status": 1,
+        "msg": "获取下一结点集合成功！",
+        "code": 0
+    },
+    "rspBody": [
+        {
+            "sequence": 0,
+            "stepId": 4340,
+            "stepName": "领导审核签发",
+            "isCanChoose": 1,
+            "stepTypeId": 4,
+            "stepVOs": [],
+            "stepUserVOs": [],
+            "chooseNum": 9999,
+            "chooseType": 1
+        },
+        {
+            "sequence": 0,
+            "stepId": 4335,
+            "stepName": "传阅办理",
+            "isCanChoose": 1,
+            "stepTypeId": 4,
+            "stepVOs": [],
+            "stepUserVOs": [],
+            "chooseNum": 9999,
+            "chooseType": 0
+        },
+        {
+            "sequence": 0,
+            "stepId": 4338,
+            "stepName": "会签",
+            "isCanChoose": 1,
+            "stepTypeId": 4,
+            "stepVOs": [],
+            "stepUserVOs": [],
+            "chooseNum": 9999,
+            "chooseType": 0
+        },
+        {
+            "sequence": 0,
+            "stepId": 4336,
+            "stepName": "结束办理",
+            "isCanChoose": 1,
+            "stepTypeId": 8,
+            "stepVOs": [],
+            "stepUserVOs": [
+                {
+                    "name": "超级用户",
+                    "id": 2,
+                    "sex": 1
+                }
+            ],
+            "chooseNum": 9999,
+            "chooseType": 0
+        }
+    ]
+}

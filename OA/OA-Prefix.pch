@@ -1,0 +1,48 @@
+//
+//  Prefix header
+//
+//  The contents of this file are implicitly included at the beginning of every source file.
+//
+
+#import <Availability.h>
+
+#ifndef __IPHONE_5_0
+#warning "This project uses features only available in iOS SDK 5.0 and later."
+#endif
+
+#ifdef __OBJC__
+    #import <UIKit/UIKit.h>
+    #import <Foundation/Foundation.h>
+    #import "SVProgressHUD.h"
+    #import "Utils.h"
+    #import "MJRefresh.h"
+    #import "SBJsonParser.h"
+    #import "Constant.h"
+    #import "JSON.h"
+    #import "AFNetworking.h"
+#endif
+
+#define UIScreenWidth                              [UIScreen mainScreen].bounds.size.width
+#define UIScreenHeight                             [UIScreen mainScreen].bounds.size.height
+
+#ifdef DEBUG
+//#define GpsLog(...)
+#define OALog(...) NSLog(@"\n\nOA App---> %@ --->%@",NSStringFromSelector(_cmd), [NSString stringWithFormat:__VA_ARGS__]);
+#else
+//#define GpsLog(...)
+#define OALog(...) NSLog(@"OA App ---> %@---> %@",NSStringFromSelector(_cmd), [NSString stringWithFormat:__VA_ARGS__]);
+
+#endif
+
+
+
+#define IOS_VERSION [[[UIDevice currentDevice] systemVersion] floatValue]
+
+#define iPhone5 ([UIScreen instancesRespondToSelector:@selector(currentMode)] ? CGSizeEqualToSize(CGSizeMake(640, 1136), [[UIScreen mainScreen] currentMode].size) : NO)
+
+
+#ifdef UI_USER_INTERFACE_IDIOM
+#define IS_IPAD() (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+#else
+#define IS_IPAD() (false)
+#endif

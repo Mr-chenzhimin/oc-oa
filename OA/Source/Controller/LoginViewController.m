@@ -1,0 +1,443 @@
+//
+//  LoginViewController.m
+//  OA
+//
+//  Created by dengfan on 13-12-8.
+//  Copyright (c) 2013年 dengfan. All rights reserved.
+//
+#import "Harpy.h"
+#import "HarpyConstants.h"
+#import "LoginViewController.h"
+#import "WorkFlowListViewController.h"
+#import "ASIFormDataRequest.h"
+#import "Utils.h"
+#import "MainCenterViewController.h"
+#define kHarpyCurrentVersion [[[NSBundle mainBundle] infoDictionary] objectForKey:(NSString*)kCFBundleVersionKey]
+
+@interface LoginViewController ()
+
+@end
+
+@implementation LoginViewController
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        // Custom initialization
+    }
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    [self.serverAddressField setTintColor:[UIColor blackColor]];
+    [self.usernameField setTintColor:[UIColor blackColor]];
+    [self.passwordField setTintColor:[UIColor blackColor]];
+    
+    
+   // Do any additional setup after loading the view.
+//    self.view.backgroundColor = [UIColor colorWithPatternImage: [UIImage imageNamed:@"登录页面背景.png"]];
+//    [self.loginBtn setBackgroundImage:[UIImage imageNamed:@"登录按钮背景"] forState:UIControlStateNormal];
+    
+    [self.passwordField setSecureTextEntry:YES];
+    
+    
+    UITapGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(hideKeyBoard)];
+    
+    [self.view addGestureRecognizer:tapGesture];
+    
+   // [Harpy checkVersion];
+    
+    NSString * username = [Utils getCacheForKey:@"username"];
+    
+    self.usernameField.text = username;
+    
+    NSString * password = [Utils getCacheForKey:@"password"];
+    
+    self.passwordField.text=password;
+    
+    
+    if([Utils getCacheForKey:@"serverAddress"]==nil){
+        self.serverAddressField.text = @"http://121.10.253.117:7890/oa";
+    }
+    else{
+        self.serverAddressField.text=[Utils getCacheForKey:@"serverAddress"];
+    }
+}
+
+
+
+-(void) hideKeyBoard{
+    [self.serverAddressField resignFirstResponder];
+    
+    [self.usernameField resignFirstResponder];
+    [self.passwordField resignFirstResponder];
+    
+}
+
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField {
+    
+    if(self.serverAddressField == textField){
+        [self.serverAddressField resignFirstResponder];
+        [self.usernameField becomeFirstResponder];
+        [self.passwordField resignFirstResponder];
+        
+    }else if(self.usernameField == textField){
+        [self.serverAddressField resignFirstResponder];
+        [self.usernameField resignFirstResponder];
+        [self.passwordField becomeFirstResponder];
+        
+    }else{
+        [self clickLoginBtn:nil];
+        [self.serverAddressField resignFirstResponder];
+        [self.usernameField resignFirstResponder];
+        [self.passwordField resignFirstResponder];
+        
+    }
+    
+    
+    return YES;
+}
+
+
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+ 
+
+- (IBAction)clickReplacePwd:(id)sender {
+    
+    NSLog(@"重置密码");
+}
+
+- (IBAction)clickLoginBtn:(id)sender{
+    
+    [self checkService];
+}
+
+
+-(void) checkService{
+    
+    NSString * urlAddress = @"http://dn-sznoda.qbox.me/oaVersion.txt";
+    
+    NSURL *url = [NSURL URLWithString:urlAddress];
+    
+    NSMutableDictionary * headers = [[NSMutableDictionary alloc] init];
+    [headers setObject:@"application/json" forKey:@"Content-type"];
+    
+    //    ASIFormDataRequest *request = [ASIFormDataRequest requestWithURL:url];
+    
+    ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
+    request.shouldAttemptPersistentConnection   = NO;
+    [request setRequestHeaders:headers];
+    
+    [request setDelegate:self];
+    [request setDidFinishSelector:@selector(GetResult1:)];
+    [request setDidFailSelector:@selector(GetErr:)];
+    [request startAsynchronous];
+}
+
+
+- (void)GetResult1:(ASIHTTPRequest *)request{
+    NSData *data =[request responseData];
+    NSMutableDictionary *result = [[[SBJsonParser alloc] init] objectWithData:data];
+    NSString *version = [result valueForKey:@"jingfeng"];
+    if(version == nil || [version isEqualToString:@""] || [version isEqualToString:@"-1"]){
+        NSString * msg = @"";
+        NSString * content = @"网络异常";
+        
+        UIAlertView * alert = [[UIAlertView alloc]
+                               initWithTitle:msg
+                               message:content
+                               delegate:self
+                               cancelButtonTitle:@"确定"
+                               otherButtonTitles:nil];
+        [alert show];
+        return;
+    }
+    
+    NSString * username = self.usernameField.text;
+    NSString * password = self.passwordField.text;
+    
+    [Utils cache:username forKey:@"username"];
+    [Utils cache:password forKey:@"password"];
+    
+    NSMutableDictionary * headers = [[NSMutableDictionary alloc] init];
+    [headers setObject:@"application/json" forKey:@"Content-type"];
+    
+    NSMutableDictionary * parameter = [[NSMutableDictionary alloc]init];
+    
+    [parameter setObject:[NSString stringWithFormat:@"%@",username] forKey:@"loginId"];
+    [parameter setObject:[NSString stringWithFormat:@"%@",password] forKey:@"passwd"];
+    [parameter setObject:[NSString stringWithFormat:@"workflow"] forKey:@"appName"];
+    [parameter setObject:kHarpyCurrentVersion forKey:@"mobileVer"];
+    
+    [parameter setObject:@"iphone" forKey:@"appName"];
+    
+    NSString * deviceId = [Utils getCacheForKey:@"oa_device_id"];
+    
+    [parameter setObject:[NSString stringWithFormat:@"%@",deviceId] forKey:@"deviceId"];
+    
+    
+    [self  sendDataPacket:parameter];
+}
+
+- (void)GetResult:(ASIHTTPRequest *)request{
+    
+    NSData *data =[request responseData];
+    
+    NSString* aStr = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    
+    NSMutableDictionary *result = [[[SBJsonParser alloc] init] objectWithData:data];
+    
+    NSMutableDictionary *rspHeader = [result objectForKey:@"rspHeader"];
+    
+    NSMutableDictionary *rspBody = [result objectForKey:@"rspBody"];
+    
+    int status = [[rspHeader objectForKey:@"status"] integerValue];
+    int code = [[rspHeader objectForKey:@"code"] integerValue];
+
+//    if(code==8084){
+//         NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:(NSString*)kCFBundleNameKey];
+//
+//        
+//        UIAlertController *alert =[UIAlertController alertControllerWithTitle:kHarpyAlertViewTitle message:[NSString stringWithFormat:@"A new version of %@ is available. Please update to version %@ now.", appName, @"1.8"] preferredStyle:UIAlertControllerStyleAlert];
+//        
+//        UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+//            NSString *urlString = @"itms-services://?action=download-manifest&url=https://dn-sznoda.qbox.me/jingfengAPP.plist";
+//            NSURL *url  = [NSURL URLWithString:urlString];
+//            [[UIApplication sharedApplication] openURL:url];
+//        }];
+//        
+//        [alert addAction:okAction];
+//        [self presentViewController:alert animated:YES completion:nil];
+//        
+//        return;
+//    }
+    if (status == 1) {
+        NSString * deptName = [rspBody objectForKey:@"deptName"];
+        NSString * userName = [rspBody objectForKey:@"userName"];
+        NSString * tokenId = [rspBody objectForKey:@"tokenId"];
+        NSString * userId = [rspBody objectForKey:@"userId"];
+        NSString * loginId = [rspBody objectForKey:@"loginId"];
+        loginId = [loginId stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+        
+        if(deptName == nil){
+            deptName = @"";
+        }
+        if (userName == nil) {
+            userName = @"";
+        }
+        
+        [Utils cache:tokenId forKey:@"tokenId"];
+        [Utils cache:self.serverAddressField.text forKey:@"serverAddress"];
+        [Utils cache:deptName forKey:@"deptName"];
+        [Utils cache:userName forKey:@"userName"];
+        [Utils cache:loginId forKey:@"loginId"];
+        [Utils cache:userId forKey:@"userId"];
+        
+        NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+        formatter.dateFormat = @"yyyy-MM-dd";
+        
+        NSString *timestamp = [formatter stringFromDate:[[NSDate alloc] init]];
+        [Utils cache:timestamp forKey:@"login_time_flag"];
+        
+//        [self performSegueWithIdentifier:@"workflowlist" sender:self];
+        MainCenterViewController *mainVc = [self.storyboard instantiateViewControllerWithIdentifier:@"MainCenterViewController"];
+        UINavigationController *nav = [[UINavigationController alloc]initWithRootViewController:mainVc];
+        [UIApplication sharedApplication].keyWindow.rootViewController = nav;
+       // NSTimer *tiemer = [NSTimer scheduledTimerWithTimeInterval:120.0 target:self selector:@selector(gettodocount) userInfo:nil repeats:YES];
+        
+        
+    }else{
+        NSString * msg = [rspHeader objectForKey:@"msg"];
+        UIAlertController *alert =[UIAlertController alertControllerWithTitle:@"错误" message:msg preferredStyle:UIAlertControllerStyleAlert];
+        
+        UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"好的" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+           
+        }];
+        
+        [alert addAction:okAction];
+        [self presentViewController:alert animated:YES completion:nil];
+
+        
+    }
+    
+}
+
+
+- (void) GetErr:(ASIHTTPRequest *)request{
+
+    NSLog(@"服务器连接不上！");
+     NSString * content = [NSString stringWithFormat:@"%@",self.serverAddressField.text];
+    NSString * msg = @"连接不上数据服务器";
+    UIAlertController *alert =[UIAlertController alertControllerWithTitle:msg message:content preferredStyle:UIAlertControllerStyleAlert];
+    
+    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+    }];
+    
+    [alert addAction:okAction];
+    [self presentViewController:alert animated:YES completion:nil];
+
+}
+
+-(void) afnhttp:(NSString *)url params:(NSMutableDictionary *)params{
+        AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
+        AFHTTPRequestSerializer *requestSerializer =  [AFJSONRequestSerializer serializer];
+        NSMutableDictionary * headers = [[NSMutableDictionary alloc] init];
+        [headers setObject:@"application/json" forKey:@"Content-type"];
+    
+//        NSString *tokenId = [Utils getCacheForKey:@"tokenId"];
+//        [headers setObject:tokenId forKey:@"token"];
+//        NSDictionary *headerFieldValueDictionary = headers;
+//        if (headerFieldValueDictionary != nil) {
+//            for (NSString *httpHeaderField in headerFieldValueDictionary.allKeys) {
+//                NSString *value = headerFieldValueDictionary[httpHeaderField];
+//                [requestSerializer setValue:value forHTTPHeaderField:httpHeaderField];
+//            }
+//        }
+        manager.requestSerializer = requestSerializer;
+        [manager POST:url parameters:params progress:^(NSProgress * _Nonnull downloadProgress) {
+    
+        } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+            OALog(@"%@--%@",[responseObject class],responseObject);
+            NSMutableDictionary *rspHeader = [responseObject objectForKey:@"rspHeader"];
+    
+            NSMutableDictionary *rspBody = [responseObject objectForKey:@"rspBody"];
+    
+            int status = [[rspHeader objectForKey:@"status"] integerValue];
+            int code = [[rspHeader objectForKey:@"code"] integerValue];
+    
+            if(code==8084){
+                NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:(NSString*)kCFBundleNameKey];
+    
+    
+                UIAlertController *alert =[UIAlertController alertControllerWithTitle:kHarpyAlertViewTitle message:[NSString stringWithFormat:@"A new version of %@ is available. Please update to version %@ now.", appName, @"1.8"] preferredStyle:UIAlertControllerStyleAlert];
+    
+                UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+                    NSString *urlString = @"itms-services://?action=download-manifest&url=https://dn-sznoda.qbox.me/jingfengAPP.plist";
+                    NSURL *url  = [NSURL URLWithString:urlString];
+                    [[UIApplication sharedApplication] openURL:url];
+                }];
+    
+                [alert addAction:okAction];
+                [self presentViewController:alert animated:YES completion:nil];
+    
+                return;
+            }
+            if (status == 1) {
+                NSString * deptName = [rspBody objectForKey:@"deptName"];
+                NSString * userName = [rspBody objectForKey:@"userName"];
+                NSString * tokenId = [rspBody objectForKey:@"tokenId"];
+                NSString * userId = [rspBody objectForKey:@"userId"];
+                NSString * loginId = [rspBody objectForKey:@"loginId"];
+                loginId = [loginId stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+    
+                if(deptName == nil){
+                    deptName = @"";
+                }
+                if (userName == nil) {
+                    userName = @"";
+                }
+    
+                [Utils cache:tokenId forKey:@"tokenId"];
+                [Utils cache:self.serverAddressField.text forKey:@"serverAddress"];
+                [Utils cache:deptName forKey:@"deptName"];
+                [Utils cache:userName forKey:@"userName"];
+                [Utils cache:loginId forKey:@"loginId"];
+                [Utils cache:userId forKey:@"userId"];
+    
+                NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+                formatter.dateFormat = @"yyyy-MM-dd";
+    
+                NSString *timestamp = [formatter stringFromDate:[[NSDate alloc] init]];
+                [Utils cache:timestamp forKey:@"login_time_flag"];
+    
+                //        [self performSegueWithIdentifier:@"workflowlist" sender:self];
+                MainCenterViewController *mainVc = [self.storyboard instantiateViewControllerWithIdentifier:@"MainCenterViewController"];
+                UINavigationController *nav = [[UINavigationController alloc]initWithRootViewController:mainVc];
+                [UIApplication sharedApplication].keyWindow.rootViewController = nav;
+                // NSTimer *tiemer = [NSTimer scheduledTimerWithTimeInterval:120.0 target:self selector:@selector(gettodocount) userInfo:nil repeats:YES];
+    
+    
+            }else{
+                NSString * msg = [rspHeader objectForKey:@"msg"];
+                UIAlertController *alert =[UIAlertController alertControllerWithTitle:@"错误" message:msg preferredStyle:UIAlertControllerStyleAlert];
+    
+                UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"好的" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+    
+                }];
+                
+                [alert addAction:okAction];
+                [self presentViewController:alert animated:YES completion:nil];
+                
+                
+            }
+            
+        } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+            [self GetErr:nil];
+        }];
+    //   end
+
+}
+
+-(void) sendDataPacket:(NSMutableDictionary *)params{
+    
+    NSString * serverAddress = self.serverAddressField.text;
+    NSString * urlAddress = [NSString stringWithFormat:@"%@/mobile/loginModule",serverAddress];
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark -AFN网络请求
+    [self afnhttp:urlAddress params:params];
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    
+//    #pragma mark -ASI网络请求
+//    NSURL *url = [NSURL URLWithString:urlAddress];
+//    NSMutableDictionary * headers = [[NSMutableDictionary alloc] init];
+//    [headers setObject:@"application/json" forKey:@"Content-type"];
+//    
+//    //    ASIFormDataRequest *request = [ASIFormDataRequest requestWithURL:url];
+//    ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:url];
+//    [request setRequestHeaders:headers];
+//    
+//    NSMutableData * postbody = [[NSMutableData alloc] init];
+//    [[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"id\"\r\n\r\n"] dataUsingEncoding:NSUTF8StringEncoding];
+//    
+//    NSString * message = [params JSONRepresentation];
+//    NSData * data = [[NSString stringWithFormat:@"%@", message] dataUsingEncoding:NSUTF8StringEncoding];
+//    
+//    [postbody appendData:data];
+//    [request setPostBody:postbody];
+//    [request setDelegate:self];
+//    [request setDidFinishSelector:@selector(GetResult:)];
+//    [request setDidFailSelector:@selector(GetErr:)];
+//    [request startAsynchronous];
+
+}
+
+
+
+- (BOOL)shouldAutorotate
+{
+    return YES;
+}
+
+- (NSUInteger)supportedInterfaceOrientations
+{
+    
+    return UIDeviceOrientationPortraitUpsideDown;
+}
+
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+{
+    return (interfaceOrientation == UIDeviceOrientationPortrait); // 只支持向左横向, YES 表示支持所有方向
+}
+
+
+@end
